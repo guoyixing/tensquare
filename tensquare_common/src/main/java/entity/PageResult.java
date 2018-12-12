@@ -8,14 +8,14 @@ import java.util.List;
  * @date 2018-12-10 15:29
  * @since 1.0.0
  */
-public class PageResulf<T> {
+public class PageResult<T> {
     private long total;
     private List<T> rows;
 
-    public PageResulf() {
+    public PageResult() {
     }
 
-    public PageResulf(long total, List<T> rows) {
+    public PageResult(long total, List<T> rows) {
         this.total = total;
         this.rows = rows;
     }
