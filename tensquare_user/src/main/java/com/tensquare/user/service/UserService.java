@@ -9,8 +9,11 @@ import javax.persistence.criteria.Expression;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Selection;
+import javax.servlet.http.HttpServletRequest;
 
+import io.jsonwebtoken.Claims;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -18,12 +21,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import util.IdWorker;
 
 import com.tensquare.user.dao.UserDao;
 import com.tensquare.user.pojo.User;
+import util.JwtUtil;
 
 /**
  * 服务层
@@ -44,6 +49,15 @@ public class UserService {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
+
+    @Autowired
+    private BCryptPasswordEncoder encoder;
+
+    @Autowired
+    private HttpServletRequest request;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     /**
      * 查询全部列表
@@ -98,6 +112,7 @@ public class UserService {
      */
     public void add(User user) {
         user.setId(idWorker.nextId() + "");
+        user.setPassword(encoder.encode(user.getPassword()));
         userDao.save(user);
     }
 
@@ -116,6 +131,23 @@ public class UserService {
      * @param id
      */
     public void deleteById(String id) {
+        String header = request.getHeader("Authorization");
+        if (StringUtils.isEmpty(header)) {
+            throw new RuntimeException("权限不足！");
+        }
+        if (!header.startsWith("Bearer ")) {
+            throw new RuntimeException("权限不足！");
+        }
+        String token = header.substring(7);
+        try {
+            Claims claims = jwtUtil.parseJWT(token);
+            String roles = (String) claims.get("roles");
+            if (roles == null || !"admin".equals(roles)){
+                throw new RuntimeException("权限不足！");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("权限不足！");
+        }
         userDao.deleteById(id);
     }
 
@@ -187,5 +219,13 @@ public class UserService {
         rabbitTemplate.convertAndSend("sms", map);
         //在控制台显示
         System.out.println("验证码为：" + checkcode);
+    }
+
+    public User login(String mobile, String password) {
+        User user = userDao.findByMobile(mobile);
+        if (user != null && encoder.matches(password, user.getPassword())) {
+            return user;
+        }
+        return null;
     }
 }

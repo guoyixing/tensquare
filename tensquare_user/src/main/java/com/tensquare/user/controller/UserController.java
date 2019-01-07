@@ -4,8 +4,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,6 +38,16 @@ public class UserController {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @RequestMapping(value = "/login" ,method = RequestMethod.POST)
+    public Result login(@RequestBody User user){
+        user = userService.login(user.getMobile(),user.getPassword());
+        if (user ==null){
+            return new Result(false,StatusCode.LOGINERROR,"登录失败");
+        }
+        //TODO jwt实现登录
+        return new Result(true,StatusCode.OK,"登录成功");
+    }
 
     /**
      * 发送短信验证码
