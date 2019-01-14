@@ -1,0 +1,22 @@
+server:
+  port: 9011
+spring:
+  application:
+    name: tensquare-manager
+eureka:
+  client:
+    service-url:
+      defaultZone: http://127.0.0.1:6868/eureka
+  instance:
+    perfer-ip-address: true
+zuul:
+  routes:
+    tensquare-base: #微服务名称
+      path: /base/** #网关触发的路径规则
+      serviceId: tensquare-base #跳转的服务名称
+    tensquare-user:
+      path: /user/**
+      serviceId: tensquare-user
+    tensquare-qa:
+      path: /qa/**
+      serviceId: tensquare-qa
